@@ -59,6 +59,7 @@
 	* CPTAC - Clinical Proteomic Tumor Analysis Consortium
 * Loaded data to HPC with GDC data trasnfer command
 ```linux
+module load anaconda/2
 gdc-client download -t <token> -m <manifest>
 ```
 
@@ -76,6 +77,7 @@ do
 done
 grep -H 'chrM' stats/*.bam > stats/chrM_bamstat_summary.txt
 ```
+
 *Samtools version*
 
 * Next observed per-base read depth with PileUpStats.py script
@@ -84,6 +86,7 @@ grep -H 'chrM' stats/*.bam > stats/chrM_bamstat_summary.txt
 	* Outputs overall stats for all samples read
 * The greater the read depth, the more confidence and accuracy in base calls
 	* Important for calling variants and when ensuring the correct haplogroup is called
+
 *Python version*
 *Pysam version*
 *Numpy version*
@@ -102,6 +105,7 @@ grep -H 'chrM' stats/*.bam > stats/chrM_bamstat_summary.txt
 		* Sample could be of Tumor, Normal Tissue, or Blood origin
 	* The first script is used for renaming the BAM files and their folders
 	* The second is used for the count files when preparing to perform DGE analysis
+
 *Python Version*
 *Pandas Version*
 
@@ -111,6 +115,7 @@ grep -H 'chrM' stats/*.bam > stats/chrM_bamstat_summary.txt
 	* This file contained the SampleID, Range, Haplogroup (column blank), and polymorphisms
 * This file is the input to the Haplogrep tool which calls the most probable haplogroup based on samples polymorphisms
 	* These polymorphisms were additionally observed in IGV to visualize variations in the genome
+
 *Haplogrep version*
 
 # Clinical Data Aggregation
