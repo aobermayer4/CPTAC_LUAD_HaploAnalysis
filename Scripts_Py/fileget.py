@@ -5,6 +5,7 @@ import os
 
 ## Script developed to check that all folders were downloaded from manifest
 ## If a folder was not downloaded it will be added to a new manifest for easy download
+## Had to develop script because gdc-client downloader stopped in the middle of downloading large number of files
 
 if len(sys.argv) < 4 :
     	print('Usage: fileget.py manifest_in.txt /path/to/files/ manifest_out.txt')
