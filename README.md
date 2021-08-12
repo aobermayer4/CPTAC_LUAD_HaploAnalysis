@@ -78,7 +78,7 @@ done
 grep -H 'chrM' stats/*.bam > stats/chrM_bamstat_summary.txt
 ```
 
-*Samtools version*
+*Samtools version 1.9*
 
 * Next observed per-base read depth with PileUpStats.py script
 	* Counts number of bases with read depths greater than 5 and 10
@@ -87,9 +87,9 @@ grep -H 'chrM' stats/*.bam > stats/chrM_bamstat_summary.txt
 * The greater the read depth, the more confidence and accuracy in base calls
 	* Important for calling variants and when ensuring the correct haplogroup is called
 
-*Python version*
-*Pysam version*
-*Numpy version*
+*Python version 3.7.2*
+*Pysam version 0.16.0.1*
+*Numpy version 1.21.1*
 
 * Use Integrative Genomics Viewer (IGV) to visually check selected TCGA and CPTAC samples to match calculations with observations
 
@@ -106,26 +106,25 @@ grep -H 'chrM' stats/*.bam > stats/chrM_bamstat_summary.txt
 	* The first script is used for renaming the BAM files and their folders
 	* The second is used for the count files when preparing to perform DGE analysis
 
-*Python Version*
-*Pandas Version*
+*Python Version 3.9.5*
+*Pandas Version 1.2.4*
 
 # Haplogrouping
 
 * Used Bash/Perl Script from Dr. Jamie Teer to obtain an HSD file from the BAM files
 	* This file contained the SampleID, Range, Haplogroup (column blank), and polymorphisms
-* This file is the input to the Haplogrep tool which calls the most probable haplogroup based on samples polymorphisms
+* This file is the input to the Haplogrep2 tool which calls the most probable haplogroup based on samples polymorphisms
 	* These polymorphisms were additionally observed in IGV to visualize variations in the genome
 
-*Haplogrep version*
+*Haplogrep version 2.2*
 
 # Clinical Data Aggregation
 
 * I then developed a Python script to parse through the clinical data in JSON format and extract information
 	* Race, Ethnicity, Vital Status, Smoker Status
 * The script output a TSV data array with the Case ID and the specified clinical information
-*Python version*
-*JSON version*
-*Numpy version*
+*Python version 3.9.5*
+*Numpy version 1.21.1*
 
 * I obtained additinal clinical data from CPTAC-3 study [site](https://cptac-data-portal.georgetown.edu/study-summary/S046)
 	* This contained many other parameters and helps clear up smoking status and ethnicity variables
