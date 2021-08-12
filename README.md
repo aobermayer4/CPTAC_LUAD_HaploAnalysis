@@ -62,3 +62,15 @@
 gdc-client download -t <token> -m <manifest>
 ```
 
+# Initial Data Analysis
+
+* Wrote a shell pipe to loop through each BAM to get number of mitochondrial DNA mapped reads per sample with Samtools
+* Helps assess overall quality of samples
+```linux
+for i in samples/*/*.bam
+do
+	samtools idxstats ${i} > stats/$(basename ${i} .bam)_idx.bam
+done
+grep -H 'chrM' stats/*.bam > stats/chrM_bamstat_summary.txt
+```
+*Mitochondrial region may be denoted 'chrM' or 'MT', needs to be checked*
