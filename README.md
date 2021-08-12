@@ -30,6 +30,9 @@
 * Haplogroup nomenclature began in North America with A, B, C, and D and branched out through all the letters of the alphabet
 	* The native North American haplogroups are branched out from Asia due to early migration
 
-### Non-Small Cell Lung Cancer
+### Non-Small Cell Lung Cancer (NSCLC)
 
-
+* NSCLC accounts for 80%-85% of lung cancers
+	* Lung Adenocarcinoma (LUAD) is the most common malignancy
+* Heavily related to tobacco smoking but also the most frequent lung cancer found in “never-smokers”
+* Tobacco carcinogenesis is believed to play a role in the vulnerable mtDNA through alterations by way of somatic mutations
