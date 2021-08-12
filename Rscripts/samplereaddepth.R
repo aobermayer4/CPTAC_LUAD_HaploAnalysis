@@ -3,6 +3,8 @@ library(ggplot2)
 library(dplyr)
 library(plotly)
 
+## This script takes the input of the PileUpStats.py script which was run on BAM sample files
+
 ## sample data frame formation
 # TCGA big set
 tcga5.df <- read.table("~/R/LUADdgeAnalysis/ReadDepthData/TCGA_depthgt5_P.txt", header=T)
