@@ -1,0 +1,430 @@
+## Import Packages
+library(readr)
+library(limma)
+library(edgeR)
+library(Glimma)
+library(Homo.sapiens)
+library(viridis)
+library(tidyverse)
+library(RColorBrewer)
+library(gplots)
+library(ggplot2)
+library(plotly)
+library(tidyr)
+library(EnhancedVolcano)
+
+####----Unpack Data----####
+
+## Load in data
+
+# Load in count files
+read_files <- list.files(path = "~/R/LUADdgeAnalysis/Data")
+
+# Load in HSD
+hsd <- read_tsv("~/R/LUADdgeAnalysis/Tables/LUAD_B_HSD.tsv")
+hsd <- hsd[,c(1,3)] # only keep CaseID and Haplogroup
+colnames(hsd)[1] <- "CaseID" #rename first column
+# haplogroups the same in Tumor and Blood
+# Tumor BAMs were missing a patient so I used blood BAMs to make HSD
+hsd$CaseID <- gsub("_B", "", hsd$CaseID) # remove blood ID
+
+# Load in Clinical Data
+# This is clinical data that was parsed from the JSON file with python script
+clin1 <- read_tsv("~/R/LUADdgeAnalysis/Tables/ClinCounts_T.tsv")
+clin1$CaseID <- gsub("_P", "", clin1$CaseID) # Remove Primary Tumor ID
+# Clinical data 2 found here: https://cptac-data-portal.georgetown.edu/study-summary/S046
+# This clinical data has a lot more information
+clin2 <- read_csv("~/R/LUADdgeAnalysis/Tables/CPTAC3_LUAD_Clin.csv")
+# clean clin2
+clin2 <- clin2[-c(112:246),] # remove all NA rows
+clin2 <- clin2[,c(2,5,6,14,15,40)] # subset columns of interest
+# rename a few columns
+colnames(clin2)[5] <- "smoking_history"
+colnames(clin2)[1] <- "CaseID"
+colnames(clin2)[4] <- "ancestryID"
+
+
+## Analyze Haplogroups
+
+# blank list to hold first letter of haplogroup
+hapID <- vector()
+# extract first letter of haplogroup and add to list
+for (i in hsd[,2]) {
+  hapi <- substring(i, 1, 1)
+  hapID <- c(hapID, hapi)
+}
+hsd$hapID <- as.factor(hapID)
+
+# adding haplogroup regions
+# lists for identifying haplogroup regions
+# A,B,C,D are more commonly found in Asia but also Native American due to migration
+# grouped with Asia due to many of those haplogroups being found and from Asian participants
+#amer <- list('A', 'B', 'C', 'D')
+eur <- list('H', 'J', 'K', 'U', 'T', 'V', 'X', 'W', 'I', 'R')
+aus <- list('Q', 'O', 'S', 'P')
+afr <- list('L')
+asia <- list('Z', 'G', 'F', 'Y', 'N', 'M', 'E', 'A', 'B', 'C', 'D')
+# blank list to hold regions
+region <- vector()
+# add region to list based off of haploID
+for (i in hsd$hapID) {
+  if (i %in% eur) {
+    region <- c(region, 'Europe')
+  }
+  if (i %in% aus) {
+    region <- c(region, 'Oceania')
+  }
+  if (i %in% afr) {
+    region <- c(region, 'Africa')
+  }
+  if (i %in% asia) {
+    region <- c(region, 'Asia')
+  }
+}
+# add region to hsd data
+hsd$region <- as.factor(region)
+
+# add in clinical data
+# merge clinical into hsd data
+hsd <- merge(hsd, clin1, by = 'CaseID', all.x = T)
+hsd <- merge(hsd, clin2, by = 'CaseID', all.x = T)
+# condense smoking status
+hsd$smoke_stat_simp <- gsub("Lifelong non-smoker: Less than 100 cigarettes smoked in lifetime",
+                            "non-smoker",
+                       gsub("Current smoker: Includes daily and non-daily smokers",
+                            "smoker",
+                       gsub("Current reformed smoker, more than 15 years",
+                            "smoker",
+                       gsub("Current reformed smoker within past 15 years",
+                            "smoker",
+                       gsub("Smoking history not available",
+                            "NA", hsd$smoking_history)))))
+# shorten longer smoking status terms
+hsd$smoking_history <- gsub("Lifelong non-smoker: Less than 100 cigarettes smoked in lifetime",
+                            "non-smoker",
+                       gsub("Current smoker: Includes daily and non-daily smokers",
+                            "Current-smoker",
+                       gsub("Current reformed smoker, more than 15 years",
+                            "Reformed-smoker>15yrs",
+                       gsub("Current reformed smoker within past 15 years",
+                            "Reformed-smoker<15yrs",
+                       gsub("Smoking history not available",
+                            "NA", hsd$smoking_history)))))
+# reorder columns
+hsd <- hsd[,c(1,9,10,2,3,4,5,6,11,13,8,14,12,7)]
+
+
+
+# Analyze haplogroup ID and Regions
+# assigning colors
+barfill <- 'cadetblue3'
+barlines <- 'cadetblue4'
+
+# plot for HaploID
+ggplot(hsd, aes(x = hapID)) +
+  geom_bar(aes(y = (..count..)),
+           color = barlines,
+           fill = barfill) +
+  theme_minimal() +
+  labs(title = "CPTAC Haplgroup ID Frquency",
+       x = "Haplogroup ID",
+       y = "Frequency")
+
+# plot for region
+ggplot(hsd, aes(x = region)) +
+  geom_bar(aes(y = (..count..)),
+           color = barlines,
+           fill = barfill) +
+  theme_minimal() +
+  labs(title = "CPTAC Haplogroup Region Frquency",
+       x = "Region",
+       y = "Frequency")
+
+# plot for Race&Eth ID
+ggplot(hsd, aes(x = ancestryID)) +
+  geom_bar(aes(y = (..count..)),
+           color = barlines,
+           fill = barfill) +
+  theme_minimal() +
+  labs(title = "CPTAC Ethnicity & Race ID Frquency",
+       x = "Ethnicity & Race ID",
+       y = "Frequency")
+
+# plot for smoking status - simplified
+ggplot(hsd, aes(x = smoke_stat_simp)) +
+  geom_bar(aes(y = (..count..)),
+           color = barlines,
+           fill = barfill) +
+  theme_minimal() +
+  labs(title = "CPTAC Smoker Status Frquency",
+       x = "Smoker Status",
+       y = "Frequency")
+
+# plot for smoking status
+ggplot(hsd, aes(x = smoking_history)) +
+  geom_bar(aes(y = (..count..)),
+           color = barlines,
+           fill = barfill) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "CPTAC Smoker History Status Frquency",
+       x = "Smoker History Status",
+       y = "Frequency")
+
+# Rename NA values
+hsd[is.na(hsd)] = "NA"
+# Condense Ancestry ID names
+hsd$ancestryID <- gsub("Han", "Asian",
+                       gsub("European", "Caucasian", hsd$ancestryID))
+# subset Asia and Europe REGION from HSD
+hsd1 <- hsd[hsd$region != "Africa",]
+#hsd1 <- hsd[hsd$ancestryID != "Black/African American" &
+#              hsd$ancestryID != "Hispanic" &
+#              hsd$ancestryID != "NA",]
+
+
+# extract CaseIDs into list
+# based on region
+read_files1 <- c(hsd1$CaseID)
+# adds end of file name to fine correct file
+read_files1 <- gsub("*$", "_P.txt", read_files1)
+
+
+## Organize sample information
+
+# Merge counts from files into DGE list object
+counts <- readDGE(read_files1, #list of sample file names
+                  path = "~/R/LUADdgeAnalysis/Data", #path to files
+                  columns = c(1,2)) #columns indicating gene name and counts
+# Reassigning group column in counts$samples data
+counts$samples$group <- as.factor("PrimaryTumor")
+
+# add haploID and haplogroup to counts data
+counts$samples$hapID <- as.factor(hsd1$hap)
+counts$samples$haplogroup <- as.character(hsd1$Haplogroup)
+
+# add region to hsd and counts data
+counts$samples$region <- as.factor(hsd1$region)
+
+# add clinical to counts samples data
+counts$samples$race <- as.factor(hsd1$Race)
+counts$samples$ethnicity <- as.factor(hsd1$Ethnicity)
+counts$samples$ancestryID <- as.factor(hsd1$ancestryID)
+counts$samples$smoker_stat_simp <- as.factor(hsd1$smoke_stat_simp)
+counts$samples$smoking_history <- as.factor(hsd1$smoking_history)
+counts$samples$vital_status <- as.factor(hsd1$Vital_Status)
+
+# Save to file
+counts.wr <- apply(counts$samples,2,as.character)
+write.csv(counts.wr, "~/R/LUADdgeAnalysis/Tables/LUAD_SampleData.csv")
+
+
+## Organize gene annotations
+# Subset geneids
+geneid <- rownames(counts)
+# Removes period from geneids
+geneid <- gsub("\\.[0-9]*$","",geneid)
+# Annotate genes
+genes <- AnnotationDbi::select(Homo.sapiens,
+                               keys = geneid,
+                               columns = c("ENSEMBL","ENTREZID","SYMBOL","TXCHROM","GENENAME"),
+                               keytype = "ENSEMBL")
+dim1 <- dim(genes)
+dim1
+# Check for geneids that map to multiple chromosomes
+genes <- genes[!duplicated(genes$ENSEMBL),]
+# Add to counts files
+counts$genes <- genes
+dim2 <- dim(genes)
+dim2
+
+
+
+####----Data Pre-Processing----####
+
+## Transformation from the raw scale
+# CPM and lCPM do not account for gene length differences
+# Counts per Million
+cpm <- cpm(counts)
+# Log Counts per Million
+lcpm <- cpm(counts, log = T)
+# Note Mean and Median library Size of samples
+M <- mean(counts$samples$lib.size) * (1e-6)
+L <- median(counts$samples$lib.size) * (1e-6)
+c(M, L)
+# Summary of Log CPM values
+summary(lcpm)
+
+
+## Removing lowly expressed Genes
+# show number of lowly expressed genes
+table(rowSums(counts$counts==0)==9)
+keep.exprs <- filterByExpr(counts, group = counts$samples$group)
+counts <- counts[keep.exprs,, keep.lib.sizes=F]
+# shows the reduction in genes
+dim3 <- dim(counts)
+dim3
+
+## Normalizing Gene Expression Distributions
+counts <- calcNormFactors(counts, method = "TMM")
+
+
+## Unsupervised clustering of samples
+region <- counts$samples$region
+hapID <- counts$samples$hapID
+lcpm <- cpm(counts, log = T)
+par(mfrow = c(1,2))
+# region
+col.reg <- region
+levels(col.reg) <- brewer.pal(nlevels(col.reg), "Set1")
+col.reg <- as.character(col.reg)
+# hapID
+col.hapID <- hapID
+nsamples <- nlevels(col.hapID)
+levels(col.hapID) <- (viridis_pal()(nsamples))
+col.hapID <- as.character(col.hapID)
+# Plotting
+plotMDS(lcpm, labels = NULL, col = col.reg, pch=20)
+title(main = "A. Regions")
+plotMDS(lcpm, labels = NULL, col = col.hapID, pch=20)
+title(main = "A. HaploIDs")
+# Glimma Plot
+glMDSPlot(lcpm, labels = paste(region, hapID, sep = "_"), groups = counts$samples[,c(5,7)])
+
+
+#Smoker Status and vitals
+smoker_status <- counts$samples$smoker_stat_simp
+vitals <- counts$samples$vital_status
+par(mfrow = c(1,2))
+# smoker status
+col.smk <- smoker_status
+levels(col.smk) <- brewer.pal(nlevels(col.smk), "Set1")
+col.smk <- as.character(col.smk)
+# vitals
+col.vit <- vitals
+levels(col.vit) <- brewer.pal(nlevels(col.vit), "Set2")
+col.vit <- as.character(col.vit)
+# Plotting
+plotMDS(lcpm, labels = NULL, col = col.smk, pch=20)
+title(main = "A. Smoker Status")
+plotMDS(lcpm, labels = NULL, col = col.vit, pch=20)
+title(main = "A. Vitals")
+# Glimma Plot
+glMDSPlot(lcpm, labels = paste(smoker_status, vitals, sep = "_"), groups = counts$samples[,c(11,13)])
+
+
+####----Differential Expression Analysis----####
+
+# plot for HaploID Asian Vs European
+ggplot(counts$samples, aes(x = hapID)) +
+  geom_bar(aes(y = (..count..)),
+           color = barlines,
+           fill = barfill) +
+  theme_minimal() +
+  labs(title = "CPTAC Haplgroup ID Frquency",
+       x = "Haplogroup ID",
+       y = "Frequency")
+
+## Creating a design matrix and contrasts
+design <- model.matrix(~0+hapID)
+# remove '0' columns
+design <- design[,colSums(design != 0) > 0]
+# adjust names
+colnames(design) <- gsub("hapID", "hapID_", colnames(design))
+
+
+# pairwise comparison between cell populations
+# B&M are most prevalent Asian haploIDs
+# H&R are most prevalent European haploIDs
+contr.matrix <- makeContrasts(
+  HapID_BvH = hapID_B - hapID_H,
+  HapID_MvR = hapID_M - hapID_R,
+  levels = colnames(design)
+)
+
+
+## Removing heteroscedascity from Count Data
+voom <- voom(counts, design, plot = T)
+
+
+## Fitting linear models for comparison of interest
+vfit <- lmFit(voom, design)
+vfit <- contrasts.fit(vfit, contrast = contr.matrix)
+efit <- eBayes(vfit)
+plotSA(efit)
+
+
+## Examining the number of DE genes
+# adj p-val set at 5% by default
+summary(decideTests(efit))
+
+
+# stricter definition of significance by adj FC
+tfit <- treat(vfit, lfc = 1)
+dt <- decideTests(tfit)
+summary(dt)
+
+# clear plotting area
+dev.off()
+
+# extract genes that are commonly DE in all comparisons
+de.common <- which(dt[,1]!=0 & dt[,2]!=0)
+length(de.common)
+#shows the top 20 gene symbols that are DE in all comparisons
+head(tfit$genes$SYMBOL[de.common], n=20)
+vennDiagram(dt[,1:2], circle.col = (viridis_pal()(2)))
+write.fit(tfit, dt, file = "~/R/LUADdgeAnalysis/Tables/venn_results.txt")
+
+
+## Examining individual DE genes from top to bottom
+# ranks DEGs from smallest to largest adj p-val
+Hap_ID.BvH <- topTreat(tfit, coef = 1, n = Inf)
+Hap_ID.MvR <- topTreat(tfit, coef = 2, n = Inf)
+# remove meta tags
+MetaTags <- grep("^__", rownames(Hap_ID.BvH))
+Hap_ID.BvH <- Hap_ID.BvH[-MetaTags, ]
+Hap_ID.MvR <- Hap_ID.MvR[-MetaTags, ]
+
+
+## Using graphical representations of DE results
+# Plotting Asian vs European HaploIDs
+# B vs H
+plotMD(tfit, column = 1, status = dt[,1], main = colnames(tfit)[1], xlim = c(-5,15))
+glMDPlot(tfit, coef = 1, status = dt, main = colnames(tfit)[1], side.main = "ENSEMBL",
+         counts = lcpm, groups = region, launch = T)
+# M vs R
+plotMD(tfit, column = 2, status = dt[,2], main = colnames(tfit)[2], xlim = c(-5,15))
+glMDPlot(tfit, coef = 2, status = dt, main = colnames(tfit)[2], side.main = "ENSEMBL",
+         counts = lcpm, groups = region, launch = T)
+
+## Heatmaps
+# need to work on
+Hap_ID.BvH.topgenes <- Hap_ID.BvH$ENTREZID[1:10]
+i1 <- which(voom$genes$ENTREZID %in% Hap_ID.BvH.topgenes)
+mycol <- colorpanel(1000, "blue", "white", "red")
+heatmap.2(lcpm[i1,], scale = "row", labRow = voom$genes$SYMBOL[i1], labCol = hapID,
+          col = mycol, trace = "none", density.info = "none", margin = c(8,6),
+          lhei = c(2,10), dendrogram = "column")
+# clear plotting area
+dev.off()
+Hap_ID.MvR.topgenes <- Hap_ID.MvR$ENTREZID[1:10]
+i2 <- which(voom$genes$ENTREZID %in% Hap_ID.MvR.topgenes)
+mycol <- colorpanel(1000, "blue", "white", "red")
+heatmap.2(lcpm[i2,], scale = "row", labRow = voom$genes$SYMBOL[i2], labCol = hapID,
+          col = mycol, trace = "none", density.info = "none", margin = c(8,6),
+          lhei = c(2,10), dendrogram = "column")
+
+# clear plotting area
+dev.off()
+
+## Volcano Plot
+EnhancedVolcano(Hap_ID.BvH,
+                lab = Hap_ID.BvH$SYMBOL,
+                x = 'logFC',
+                y = 'P.Value',
+                title = 'HaploID B vs H')
+EnhancedVolcano(Hap_ID.MvR,
+                lab = Hap_ID.MvR$SYMBOL,
+                x = 'logFC',
+                y = 'P.Value',
+                title = 'HaploID M vs R')
