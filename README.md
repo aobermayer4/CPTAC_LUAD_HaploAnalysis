@@ -36,3 +36,29 @@
 	* Lung Adenocarcinoma (LUAD) is the most common malignancy
 * Heavily related to tobacco smoking but also the most frequent lung cancer found in “never-smokers”
 * Tobacco carcinogenesis is believed to play a role in the vulnerable mtDNA through alterations by way of somatic mutations
+
+# Project Goals
+
+* Assign mitochondrial DNA to haplogroups
+* Perform and compare global differential gene expression analysis across haplogroups
+* Examine overall impact haplogroups may have on NSCLC LUAD outcome, stage, and metabolism
+
+# Project Workflow
+
+* Obtain controlled access data from the GDC Data Portal
+* Load data into cluster environment for read depth analysis
+* Generate file formats: MPG, VCF, FASTA, and HSD
+* Call probable haplogroups
+* Integrate haplogroups with participant clinical data
+* Perform RNA-seq analysis with high dimensional data visualization
+
+# Data Fetching
+
+* Obtained whole exome, aligned, paired-end sequenced reads from GDC Data Portal
+	* TCGA - The Cancer Genome Atlas
+	* CPTAC - Clinical Proteomic Tumor Analysis Consortium
+* Loaded data to HPC with GDC data trasnfer command
+```linux
+gdc-client download -t <token> -m <manifest>
+```
+
